@@ -52,23 +52,25 @@ bool CheckerboardFinder::init(const std::string& name,
   topic_name = node->declare_parameter<std::string>(name + ".topic", name + "/points");
   subscriber_ = node->create_subscription<sensor_msgs::msg::PointCloud2>(
     topic_name,
-    rclcpp::QoS(1).best_effort().keep_last(1),
+    rclcpp::QoS(1).reliable().keep_last(1),
     std::bind(&CheckerboardFinder::cameraCallback, this, std::placeholders::_1));
 
+  RCLCPP_ERROR(LOGGER, "Name: %s, Subscribing to: %s", name.c_str(), topic_name.c_str());
+
   // Size of checkerboard
-  points_x_ = node->declare_parameter<int>("points_x", 5);
-  points_y_ = node->declare_parameter<int>("points_y", 4);
-  square_size_ = node->declare_parameter<double>("size", 0.0245);
+  points_x_ = node->declare_parameter<int>(name + ".points_x", 5);
+  points_y_ = node->declare_parameter<int>(name + ".points_y", 4);
+  square_size_ = node->declare_parameter<double>(name + ".size", 0.0245);
 
   // Should we include debug image/cloud in observations
-  output_debug_ = node->declare_parameter<bool>("debug", false);
+  output_debug_ = node->declare_parameter<bool>(name + ".debug", false);
 
   // Name of checkerboard frame that will be used during optimization
-  frame_id_ = node->declare_parameter<std::string>("frame_id", "checkerboard");
+  frame_id_ = node->declare_parameter<std::string>(name + ".frame_id", "checkerboard");
 
   // Name of the sensor model that will be used during optimization
-  camera_sensor_name_ = node->declare_parameter<std::string>("camera_sensor_name", "camera");
-  chain_sensor_name_ = node->declare_parameter<std::string>("framchain_sensor_namee_id", "arm");
+  camera_sensor_name_ = node->declare_parameter<std::string>(name + ".camera_sensor_name", "camera");
+  chain_sensor_name_ = node->declare_parameter<std::string>(name + ".chain_sensor_name", "arm");
 
   // Publish where checkerboard points were seen
   publisher_ = node->create_publisher<sensor_msgs::msg::PointCloud2>(getName() + "_points", 10);
@@ -193,7 +195,12 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
   points.resize(points_x_ * points_y_);
   cv::Size checkerboard_size(points_x_, points_y_);
   int found = cv::findChessboardCorners(bridge->image, checkerboard_size,
-                                        points, cv::CALIB_CB_ADAPTIVE_THRESH);
+                                        points, cv::CALIB_CB_ADAPTIVE_THRESH + 
+                                        cv::CALIB_CB_NORMALIZE_IMAGE +
+                                        cv::CALIB_CB_FILTER_QUADS);
+
+  RCLCPP_WARN(LOGGER, "found: %i, checker size: %i, %i, %i", found, points_x_, points_y_, 
+    cv::checkChessboard(bridge->image, checkerboard_size));
 
   if (found)
   {
@@ -229,7 +236,8 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     for (size_t i = 0; i < points.size(); ++i)
     {
       world.point.x = (i % points_x_) * square_size_;
-      world.point.y = (i / points_x_) * square_size_;
+      world.point.y = (i / points_x_) * square_size_ * -1.0; // TODO(Marq): should both of these use `points_x_`? -> no otherwise point.y will rollover before point.x finishes filling out row
+      // RCLCPP_WARN(LOGGER, "world pt: %f, %f", world.point.x, world.point.y);
 
       // Get 3d point
       int index = (int)(points[i].y) * cloud_.width + (int)(points[i].x);
@@ -270,6 +278,12 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     return true;
   }
 
+  cv::Size observed_size;
+  if(cv::checkChessboard(bridge->image, observed_size))
+    RCLCPP_ERROR(LOGGER, "The checkerboard found does not match the values given in capture.yaml.\n \
+     Found checkerboard with: %d points_x, %d points_y.");
+  else
+    RCLCPP_ERROR(LOGGER, "Could not find the checkerboard!");
   return false;
 }
 
