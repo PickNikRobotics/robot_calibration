@@ -1,0 +1,20 @@
+# the server needs to know what frames it should “calibrate”
+geometry_msgs/TransformStamped[] estimated_poses
+
+bool lookup_initial_estimate
+
+# where should we save the results? If not specified then what?
+# should this be a separate service?
+string result_output_path
+
+# non-empty path activates this feature
+string bag_file_path
+---
+# result
+geometry_msgs/TransformStamped[] calibrated_poses
+bool success
+---
+#feedback
+float percent_complete
+
+geometry_msgs/TransformStamped[] pose_updates
