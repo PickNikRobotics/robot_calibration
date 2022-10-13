@@ -15,6 +15,6 @@ geometry_msgs/TransformStamped[] calibrated_poses
 bool success
 ---
 #feedback
-float percent_complete
+float32 percent_complete
 
 geometry_msgs/TransformStamped[] pose_updates

@@ -33,7 +33,6 @@ class CalibratePoseServer
   std::vector<robot_calibration_msgs::msg::CaptureConfig> robot_poses;
 	void load_robot_poses();
 
-
 	// Action server callbacks
 	rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,
