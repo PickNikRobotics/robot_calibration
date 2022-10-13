@@ -15,11 +15,6 @@ CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, st
       std::bind(&CalibratePoseServer::handle_cancel, this, _1),
       std::bind(&CalibratePoseServer::handle_accepted, this, _1));
 
-	capture_manager.init(node);
-
-	// Save URDF for calibration/export step
-	description_msg.data = capture_manager.getUrdf();
-
 	load_robot_poses();
 }
 
@@ -53,6 +48,12 @@ rclcpp_action::CancelResponse CalibratePoseServer::handle_cancel(
 void CalibratePoseServer::handle_accepted(const std::shared_ptr<GoalHandleCalibratePose> goal_handle)
 {
 	auto logger = node_->get_logger();
+
+	capture_manager.init(node_);
+
+	// Save URDF for calibration/export step
+	description_msg.data = capture_manager.getUrdf();
+
 	// Loop through robot poses if read from YAML or bag file
   if (!robot_poses.empty()) 
   {

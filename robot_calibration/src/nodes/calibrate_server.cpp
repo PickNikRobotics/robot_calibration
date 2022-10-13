@@ -17,8 +17,10 @@ int main(int argc, char **argv)
     data_source = argv[1];
   }
 
+	std::cout << "Creating action server" << std::endl;
 	CalibratePoseServer calibrate_pose_action_server = CalibratePoseServer(node, data_source);
 
+	rclcpp::spin(node);
   rclcpp::shutdown();
 
 	return 0;

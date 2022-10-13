@@ -180,6 +180,7 @@ install(DIRECTORY include/ DESTINATION include)
 install(TARGETS
   base_calibration_node
   calibrate
+  calibrate_server
   magnetometer_calibration
   robot_calibration
   robot_calibration_feature_finders
