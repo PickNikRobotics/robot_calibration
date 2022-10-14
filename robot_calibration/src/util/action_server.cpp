@@ -3,6 +3,11 @@
 
 #include <robot_calibration/optimization/ceres_optimizer.hpp>
 #include <robot_calibration/optimization/export.hpp>
+
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Transform.h"
+
 using namespace std::placeholders;
 
 CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, std::string robot_poses_path)
@@ -48,6 +53,7 @@ rclcpp_action::CancelResponse CalibratePoseServer::handle_cancel(
 void CalibratePoseServer::handle_accepted(const std::shared_ptr<GoalHandleCalibratePose> goal_handle)
 {
 	auto logger = node_->get_logger();
+	const auto goal = goal_handle->get_goal();
 
 	capture_manager.init(node_);
 
@@ -103,16 +109,43 @@ void CalibratePoseServer::handle_accepted(const std::shared_ptr<GoalHandleCalibr
   // Run calibration steps
   for (auto step : calibration_steps)
   {
-    params.LoadFromROS(node_, step);
+		params.LoadFromROS(node_, step);
+
+		// If we receive initial guess from action goal, override 
+		std::string initial_guess_param = step + ".free_frames_initial_values";
+		RCLCPP_INFO(logger, "Overriding initial values for: %s", initial_guess_param.c_str());
+
+		for (unsigned i=0; i < params.free_frames.size(); i++) {
+			for (const auto& estimated_pose : goal->estimated_poses) {
+				if (estimated_pose.child_frame_id == params.free_params.at(i)) {
+					params.free_frames_initial_values.at(i).x = estimated_pose.transform.translation.x;
+					params.free_frames_initial_values.at(i).y = estimated_pose.transform.translation.y;
+					params.free_frames_initial_values.at(i).z = estimated_pose.transform.translation.z;
+
+					tf2::Quaternion q(estimated_pose.transform.rotation.x,
+														estimated_pose.transform.rotation.y,
+														estimated_pose.transform.rotation.z,
+														estimated_pose.transform.rotation.w);
+					tf2::Matrix3x3 m(q);
+					double roll, pitch, yaw;
+					m.getRPY(roll, pitch, yaw);
+
+					params.free_frames_initial_values[i].roll = roll;
+					params.free_frames_initial_values[i].pitch = pitch;
+					params.free_frames_initial_values[i].yaw = yaw;
+				}
+			}
+		}
+
     opt.optimize(params, data, logger, true);
-    // opt.getOffsets()->writeToYAML("/home/abishalini/ws_studio/src/moveit_studio/moveit_studio_robot_config/kinova_gen3_lite_skills_center_config/calibration/camera_calibration.yaml");
 
 		std::cout << "Parameter Offsets:" << std::endl;
 		std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
   }
 
   // Write outputs
-  robot_calibration::exportResults(opt, description_msg.data, data);
+  // robot_calibration::exportResults(opt, description_msg.data, data);
+	auto result = std::make_shared<CalibratePose::Result>();
 
   RCLCPP_INFO(logger, "Done calibrating");
 }
