@@ -8,7 +8,6 @@ int main(int argc, char **argv)
 {
 	rclcpp::init(argc, argv);
 	rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("robot_calibration_server");
-	rclcpp::Logger logger = node->get_logger();
 
 	// Get calibration poses YAML path
 	std::string data_source("calibration_poses.yaml");
