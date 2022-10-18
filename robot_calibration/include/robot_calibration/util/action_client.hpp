@@ -91,7 +91,7 @@ public:
     rclcpp::Time start = node->now();
     while (state_ == ActionClientState::ACTIVE)
     {
-      rclcpp::spin_some(node);
+      // rclcpp::spin_some(node);
       rclcpp::sleep_for(std::chrono::milliseconds(10));
 
       if ((node->now() - start) > timeout)

@@ -42,5 +42,6 @@ class CalibratePoseServer
     const std::shared_ptr<GoalHandleCalibratePose> goal_handle);
 
   void handle_accepted(const std::shared_ptr<GoalHandleCalibratePose> goal_handle);
+  void execute(const std::shared_ptr<GoalHandleCalibratePose> goal_handle);
 
 };

@@ -19,7 +19,9 @@ int main(int argc, char **argv)
 	std::cout << "Creating action server" << std::endl;
 	CalibratePoseServer calibrate_pose_action_server = CalibratePoseServer(node, data_source);
 
-	rclcpp::spin(node);
+  rclcpp::executors::MultiThreadedExecutor exec(rclcpp::ExecutorOptions(), 0, false, std::chrono::milliseconds(250));
+	exec.add_node(node->get_node_base_interface());
+	exec.spin();
   rclcpp::shutdown();
 
 	return 0;

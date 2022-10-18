@@ -83,7 +83,7 @@ public:
         return true;
       }
       rclcpp::sleep_for(std::chrono::milliseconds(100));
-      rclcpp::spin_some(node);
+      // rclcpp::spin_some(node);
     }
 
     RCLCPP_WARN(logger, "CameraInfo receive timed out.");

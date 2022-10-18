@@ -314,7 +314,7 @@ bool ChainManager::waitToSettle()
       }
     }
 
-    rclcpp::spin_some(node);
+    // rclcpp::spin_some(node);
   }
 
   return true;
