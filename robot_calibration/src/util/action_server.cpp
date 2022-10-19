@@ -179,11 +179,31 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
 
     std::cout << "Parameter Offsets:" << std::endl;
     std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
-  }
 
-  // Write outputs
-  // robot_calibration::exportResults(opt, description_msg.data, data);
-  auto result = std::make_shared<CalibratePose::Result>();
+    // Send result
+    auto result = std::make_shared<CalibratePose::Result>();
+
+    for (const auto& free_frame : params.free_params) {
+      geometry_msgs::msg::TransformStamped estimated_pose;
+      estimated_pose.child_frame_id = free_frame;
+      estimated_pose.transform.translation.x = opt.getOffsets()->get(free_frame + "_x");
+      estimated_pose.transform.translation.y = opt.getOffsets()->get(free_frame + "_y");
+      estimated_pose.transform.translation.z = opt.getOffsets()->get(free_frame + "_z");
+
+      KDL::Rotation r;
+      r = robot_calibration::rotation_from_axis_magnitude(opt.getOffsets()->get(free_frame + "_a"), opt.getOffsets()->get(free_frame + "_b"), opt.getOffsets()->get(free_frame + "_c"));
+      double x, y, z, w;
+      r.GetQuaternion(x, y, z, w);
+      estimated_pose.transform.rotation.x = x;
+      estimated_pose.transform.rotation.y = y;
+      estimated_pose.transform.rotation.z = z;
+      estimated_pose.transform.rotation.w = w;
+
+      result->calibrated_poses.push_back(estimated_pose);
+    }
+    RCLCPP_INFO(logger, "Goal succeeded. Send the result");
+    goal_handle->succeed(result);
+  }
 
   RCLCPP_INFO(logger, "Done calibrating");
 }
