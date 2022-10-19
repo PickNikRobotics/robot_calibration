@@ -28,6 +28,7 @@ class CalibratePoseServer
   std::vector<robot_calibration_msgs::msg::CalibrationData> data;
 
   robot_calibration::CaptureManager capture_manager;
+  std::vector<std::string> calibration_steps;
 
   // Load a set of calibration poses from YAML or bag file
   std::vector<robot_calibration_msgs::msg::CaptureConfig> robot_poses;

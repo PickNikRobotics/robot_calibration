@@ -23,6 +23,14 @@ CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, st
   load_robot_poses();
 
   capture_manager.init(node_);
+
+  // Load calibration steps
+  calibration_steps =
+      node_->declare_parameter<std::vector<std::string>>("calibration_steps", std::vector<std::string>());
+  if (calibration_steps.empty())
+  {
+    RCLCPP_FATAL(node->get_logger, "Parameter calibration_steps is not defined");
+  }
 }
 
 void CalibratePoseServer::load_robot_poses()
@@ -101,14 +109,6 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
   // Create instance of optimizer
   robot_calibration::OptimizationParams params;
   robot_calibration::Optimizer opt(description_msg.data);
-
-  // Load calibration steps
-  std::vector<std::string> calibration_steps =
-      node_->declare_parameter<std::vector<std::string>>("calibration_steps", std::vector<std::string>());
-  if (calibration_steps.empty())
-  {
-    RCLCPP_FATAL(logger, "Parameter calibration_steps is not defined");
-  }
 
   // Run calibration steps
   for (auto step : calibration_steps)
