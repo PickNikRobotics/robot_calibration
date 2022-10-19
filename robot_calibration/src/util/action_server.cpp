@@ -29,7 +29,7 @@ CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, st
       node_->declare_parameter<std::vector<std::string>>("calibration_steps", std::vector<std::string>());
   if (calibration_steps.empty())
   {
-    RCLCPP_FATAL(node->get_logger, "Parameter calibration_steps is not defined");
+    RCLCPP_FATAL(node->get_logger(), "Parameter calibration_steps is not defined");
   }
 }
 
@@ -116,27 +116,26 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
     params.LoadFromROS(node_, step);
 
     // If we receive initial guess from action goal, override 
-    std::string initial_guess_param = step + ".free_frames_initial_values";
-    RCLCPP_INFO(logger, "Overriding initial values for: %s", initial_guess_param.c_str());
+    if (goal->estimated_poses.size() > 0) {
+      for (unsigned i=0; i < params.free_frames.size(); i++) {
+        for (const auto& estimated_pose : goal->estimated_poses) {
+          if (estimated_pose.child_frame_id == params.free_params.at(i)) {
+            params.free_frames_initial_values.at(i).x = estimated_pose.transform.translation.x;
+            params.free_frames_initial_values.at(i).y = estimated_pose.transform.translation.y;
+            params.free_frames_initial_values.at(i).z = estimated_pose.transform.translation.z;
 
-    for (unsigned i=0; i < params.free_frames.size(); i++) {
-      for (const auto& estimated_pose : goal->estimated_poses) {
-        if (estimated_pose.child_frame_id == params.free_params.at(i)) {
-          params.free_frames_initial_values.at(i).x = estimated_pose.transform.translation.x;
-          params.free_frames_initial_values.at(i).y = estimated_pose.transform.translation.y;
-          params.free_frames_initial_values.at(i).z = estimated_pose.transform.translation.z;
+            tf2::Quaternion q(estimated_pose.transform.rotation.x,
+                              estimated_pose.transform.rotation.y,
+                              estimated_pose.transform.rotation.z,
+                              estimated_pose.transform.rotation.w);
+            tf2::Matrix3x3 m(q);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
 
-          tf2::Quaternion q(estimated_pose.transform.rotation.x,
-                            estimated_pose.transform.rotation.y,
-                            estimated_pose.transform.rotation.z,
-                            estimated_pose.transform.rotation.w);
-          tf2::Matrix3x3 m(q);
-          double roll, pitch, yaw;
-          m.getRPY(roll, pitch, yaw);
-
-          params.free_frames_initial_values[i].roll = roll;
-          params.free_frames_initial_values[i].pitch = pitch;
-          params.free_frames_initial_values[i].yaw = yaw;
+            params.free_frames_initial_values[i].roll = roll;
+            params.free_frames_initial_values[i].pitch = pitch;
+            params.free_frames_initial_values[i].yaw = yaw;
+          }
         }
       }
     }
