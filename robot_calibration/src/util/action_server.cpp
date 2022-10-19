@@ -20,6 +20,11 @@ CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, st
       std::bind(&CalibratePoseServer::handle_cancel, this, _1),
       std::bind(&CalibratePoseServer::handle_accepted, this, _1));
 
+  tf_buffer_ =
+    std::make_unique<tf2_ros::Buffer>(node->get_clock());
+  tf_listener_ =
+    std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
   load_robot_poses();
 
   capture_manager.init(node_);
@@ -137,6 +142,36 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
             params.free_frames_initial_values[i].yaw = yaw;
           }
         }
+      }
+    }
+
+    if (goal->lookup_initial_estimate) {
+      geometry_msgs::msg::TransformStamped t;
+      try {
+        RCLCPP_INFO(logger, "Looking up transform from base_link to scene_camera_mount_link");
+        t = tf_buffer_->lookupTransform("scene_camera_mount_link", "base_link", tf2::TimePointZero);
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_INFO(logger, "Could not transform scene_camera_mount_link to base_link : %s", ex.what());
+      }
+
+      for (unsigned i=0; i < params.free_frames.size(); i++) {
+        if (params.free_params.at(i) == "scene_camera_mount_joint") {
+            params.free_frames_initial_values.at(i).x = t.transform.translation.x;
+            params.free_frames_initial_values.at(i).y = t.transform.translation.y;
+            params.free_frames_initial_values.at(i).z = t.transform.translation.z;
+
+            tf2::Quaternion q(t.transform.rotation.x,
+                              t.transform.rotation.y,
+                              t.transform.rotation.z,
+                              t.transform.rotation.w);
+            tf2::Matrix3x3 m(q);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+
+            params.free_frames_initial_values.at(i).roll = roll;
+            params.free_frames_initial_values.at(i).pitch = pitch;
+            params.free_frames_initial_values.at(i).yaw = yaw;
+          }
       }
     }
 
