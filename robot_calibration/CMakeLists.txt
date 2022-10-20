@@ -80,6 +80,7 @@ add_library(robot_calibration SHARED
   src/util/poses_from_bag.cpp
   src/util/poses_from_yaml.cpp
   src/util/mesh_loader.cpp
+  src/util/action_server.cpp
 )
 target_link_libraries(robot_calibration
   ${Boost_LIBRARIES}
@@ -119,6 +120,19 @@ target_link_libraries(calibrate
   ${OpenCV_LIBS}
 )
 ament_target_dependencies(calibrate
+  ${dependencies}
+)
+
+add_executable(calibrate_server src/nodes/calibrate_server.cpp)
+target_link_libraries(calibrate_server
+  robot_calibration
+  ${Boost_LIBRARIES}
+  ${CERES_LIBRARIES}
+  ${tinyxml_LIBRARIES}
+  ${orocos_kdl_LIBRARIES}
+  ${OpenCV_LIBS}
+)
+ament_target_dependencies(calibrate_server
   ${dependencies}
 )
 
@@ -166,6 +180,7 @@ install(DIRECTORY include/ DESTINATION include)
 install(TARGETS
   base_calibration_node
   calibrate
+  calibrate_server
   magnetometer_calibration
   robot_calibration
   robot_calibration_feature_finders

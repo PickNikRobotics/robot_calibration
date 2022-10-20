@@ -118,7 +118,7 @@ bool CheckerboardFinder::waitForCloud()
       return true;
     }
     rclcpp::sleep_for(std::chrono::milliseconds(10));
-    rclcpp::spin_some(node);
+    // rclcpp::spin_some(node);
   }
   RCLCPP_ERROR(LOGGER, "Failed to get cloud");
   return !waiting_;
