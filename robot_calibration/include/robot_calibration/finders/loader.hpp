@@ -50,6 +50,7 @@ public:
   bool load(rclcpp::Node::SharedPtr node,
             FeatureFinderMap& features)
   {
+//    std::cout << "Inside the feature finder load funtion" << std::endl;
     // Setup tf2 interface
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(node->get_clock());
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
@@ -75,6 +76,8 @@ public:
       // Get finder type
       std::string type =
         node->declare_parameter<std::string>(name + ".type", std::string());
+
+      std::cout << "Feature Type : " << type << std::endl;
       
       if (type == "")
       {
@@ -88,6 +91,7 @@ public:
       finder = plugin_loader_.createSharedInstance(type);
       if (finder && finder->init(name, tf2_buffer_, node))
       {
+        std::cout << "Assigning finder using plugin loader" << std::endl;
         features[name] = finder;
       }
       // TODO(marqrazz) Error if you fail to load the plugin!

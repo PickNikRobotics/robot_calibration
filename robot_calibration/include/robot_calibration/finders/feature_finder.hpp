@@ -49,6 +49,7 @@ public:
                     std::shared_ptr<tf2_ros::Buffer> buffer,
                     rclcpp::Node::SharedPtr node)
   {
+   // std::cout << "Init the feature finder : " << name << std::endl;
     name_ = name;
     tf2_buffer_ = buffer;
     node_ptr_ = node;

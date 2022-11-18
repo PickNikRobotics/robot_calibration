@@ -11,7 +11,7 @@
 using namespace std::placeholders;
 
 CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, std::string robot_poses_path)
-: node_(node), robot_poses_path_(robot_poses_path)
+: node_(node), pub_{node_->create_publisher<visualization_msgs::msg::MarkerArray>("/cal", rclcpp::SensorDataQoS().reliable())}, robot_poses_path_(robot_poses_path)
 {
   action_server_ = rclcpp_action::create_server<CalibratePose>(
       node_,
@@ -105,6 +105,9 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       RCLCPP_INFO(logger, "Captured pose %u of %lu", pose_idx + 1, robot_poses.size());
 
       // Add to samples
+      std::cout << "Number of observation : " << msg.observations.size() << std::endl;
+      std::cout << "Name of observation sensor 1 : " << msg.observations[0].sensor_name << std::endl;
+      std::cout << "Name of observation sensor 2 : " << msg.observations[1].sensor_name << std::endl;
       data.push_back(msg);
     }
 
@@ -125,6 +128,8 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       for (unsigned i=0; i < params.free_frames.size(); i++) {
         for (const auto& estimated_pose : goal->estimated_poses) {
           if (estimated_pose.child_frame_id == params.free_frames.at(i).name) {
+            std::cout << "Overriding estimated poses from action goal for frame : " << params.free_frames.at(i).name << std::endl;
+            std::cout << "Initial Value - x: " <<  params.free_frames_initial_values.at(i).x << " y: " <<  params.free_frames_initial_values.at(i).y << " z: " <<  params.free_frames_initial_values.at(i).z << " roll: " <<  params.free_frames_initial_values.at(i).roll << " pitch: " <<  params.free_frames_initial_values.at(i).pitch << " yaw: " <<  params.free_frames_initial_values.at(i).yaw << std::endl;
             params.free_frames_initial_values.at(i).x = estimated_pose.transform.translation.x;
             params.free_frames_initial_values.at(i).y = estimated_pose.transform.translation.y;
             params.free_frames_initial_values.at(i).z = estimated_pose.transform.translation.z;
@@ -140,6 +145,9 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
             params.free_frames_initial_values[i].roll = roll;
             params.free_frames_initial_values[i].pitch = pitch;
             params.free_frames_initial_values[i].yaw = yaw;
+
+            std::cout << "Overriden Value - x: " <<  estimated_pose.transform.translation.x << " y: " << estimated_pose.transform.translation.y << " z: " <<  estimated_pose.transform.translation.z << " roll: " << roll << " pitch: " <<  pitch << " yaw: " <<  yaw << std::endl;
+
           }
         }
       }
@@ -149,33 +157,39 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
     if (goal->lookup_initial_estimate) {
       try {
         RCLCPP_INFO(logger, "Looking up transform from base_link to scene_camera_mount_link");
-        initial_estimate = tf_buffer_->lookupTransform("scene_camera_mount_link", "base_link", tf2::TimePointZero);
+        initial_estimate = tf_buffer_->lookupTransform("base_link", "scene_camera_mount_link", tf2::TimePointZero);
       } catch (const tf2::TransformException & ex) {
         RCLCPP_INFO(logger, "Could not transform scene_camera_mount_link to base_link : %s", ex.what());
       }
 
       for (unsigned i=0; i < params.free_frames.size(); i++) {
         if (params.free_frames.at(i).name == "scene_camera_mount_joint") {
-            params.free_frames_initial_values.at(i).x = initial_estimate.transform.translation.x;
-            params.free_frames_initial_values.at(i).y = initial_estimate.transform.translation.y;
-            params.free_frames_initial_values.at(i).z = initial_estimate.transform.translation.z;
+          std::cout << "Looking up transform for scene_camera_mound_joint" << std::endl;
+          std::cout << "Initial Value - x: " <<  params.free_frames_initial_values.at(i).x << " y: " <<  params.free_frames_initial_values.at(i).y << " z: " <<  params.free_frames_initial_values.at(i).z << " roll: " <<  params.free_frames_initial_values.at(i).roll << " pitch: " <<  params.free_frames_initial_values.at(i).pitch << " yaw: " <<  params.free_frames_initial_values.at(i).yaw << std::endl;
 
-            tf2::Quaternion q(initial_estimate.transform.rotation.x,
-                              initial_estimate.transform.rotation.y,
-                              initial_estimate.transform.rotation.z,
-                              initial_estimate.transform.rotation.w);
-            tf2::Matrix3x3 m(q);
-            double roll, pitch, yaw;
-            m.getRPY(roll, pitch, yaw);
+          params.free_frames_initial_values.at(i).x = initial_estimate.transform.translation.x;
+          params.free_frames_initial_values.at(i).y = initial_estimate.transform.translation.y;
+          params.free_frames_initial_values.at(i).z = initial_estimate.transform.translation.z;
 
-            params.free_frames_initial_values.at(i).roll = roll;
-            params.free_frames_initial_values.at(i).pitch = pitch;
-            params.free_frames_initial_values.at(i).yaw = yaw;
+          tf2::Quaternion q(initial_estimate.transform.rotation.x,
+                            initial_estimate.transform.rotation.y,
+                            initial_estimate.transform.rotation.z,
+                            initial_estimate.transform.rotation.w);
+          tf2::Matrix3x3 m(q);
+          double roll, pitch, yaw;
+          m.getRPY(roll, pitch, yaw);
+
+          params.free_frames_initial_values.at(i).roll = roll;
+          params.free_frames_initial_values.at(i).pitch = pitch;
+          params.free_frames_initial_values.at(i).yaw = yaw;
+
+          std::cout << "Overriden Value - x: " <<  initial_estimate.transform.translation.x << " y: " << initial_estimate.transform.translation.y << " z: " <<  initial_estimate.transform.translation.z << " roll: " << roll << " pitch: " <<  pitch << " yaw: " <<  yaw << std::endl;
+
           }
       }
     }
 
-    opt.optimize(params, data, logger, true);
+    opt.optimize(params, data, logger, pub_, true);
 
     std::cout << "Parameter Offsets:" << std::endl;
     std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;

@@ -43,6 +43,7 @@ Chain3dModel::Chain3dModel(const std::string& name, KDL::Tree model, std::string
     root_(root), tip_(tip), name_(name)
 {
   // Create a KDL::Chain
+
   if (!model.getChain(root, tip, chain_))
   {
     auto error_msg = std::string{"Failed to build a chain model from "} + root + " to " + tip + ", check the link names";
@@ -64,6 +65,7 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
   {
     if (data.observations[obs].sensor_name == name_)
     {
+      std::cout << "Project observation for " << name_ << std::endl;
       sensor_idx = obs;
       break;
     }
@@ -100,6 +102,8 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
       if (offsets.getFrame(data.observations[sensor_idx].features[i].header.frame_id, p2))
       {
         // We have to apply the frame offset before the FK projection
+        std::cout << "Getting frame offset for  : " << data.observations[sensor_idx].features[i].header.frame_id << std::endl;
+        std::cout << p2.p.x() << ", " << p2.p.y() << ", " << p2.p.z() << std::endl;
         p = p2 * p;
       }
     }
@@ -113,6 +117,71 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
   }
 
   return points;
+
+  // if (name_ == "arm") {
+  //   // Get the projection from forward kinematics of the robot chain
+  //   std::cout << "Calling getChainFK from Chain3dModel project for arm" << std::endl;
+  //   KDL::Frame fk = getChainFK(offsets, data.joint_states);
+
+  //   // Project each individual point
+  //   for (size_t i = 0; i < points.size(); ++i)
+  //   {
+  //     points[i].header.frame_id = root_;  // fk returns point in root_ frame
+
+  //     KDL::Frame p(KDL::Frame::Identity());
+  //     p.p.x(data.observations[sensor_idx].features[i].point.x);
+  //     p.p.y(data.observations[sensor_idx].features[i].point.y);
+  //     p.p.z(data.observations[sensor_idx].features[i].point.z);
+
+  //     // This is primarily for the case of checkerboards
+  //     //   The observation is in "checkerboard" frame, but the tip of the
+  //     //   kinematic chain is typically something like "wrist_roll_link".
+  //     if (data.observations[sensor_idx].features[i].header.frame_id != tip_)
+  //     {
+  //       KDL::Frame p2(KDL::Frame::Identity());
+  //       if (offsets.getFrame(data.observations[sensor_idx].features[i].header.frame_id, p2))
+  //       {
+  //         // We have to apply the frame offset before the FK projection
+  //        std::cout << "Getting frame ID  : " << data.observations[sensor_idx].features[i].header.frame_id << std::endl;
+  //        std::cout << p2.p.x() << ", " << p2.p.y() << ", " << p2.p.z() << std::endl;
+  //         p = p2 * p;
+  //       }
+  //     }
+
+  //     // Apply the FK projection
+  //     p = fk * p;
+
+  //     points[i].point.x = p.p.x();
+  //     points[i].point.y = p.p.y();
+  //     points[i].point.z = p.p.z();
+  //   }
+  //   return points;
+  // }
+ 
+  // if (name_ == "camera") {
+  //   std::cout << "Calling getChainFK from Chain3dModel project for camera" << std::endl;
+  //   // Project each individual point
+  //   for (size_t i = 0; i < points.size(); ++i)
+  //   {
+  //     points[i].header.frame_id = root_;  // fk returns point in root_ frame
+
+  //     KDL::Frame p(KDL::Frame::Identity());
+  //     p.p.x(data.observations[sensor_idx].features[i].point.x);
+  //     p.p.y(data.observations[sensor_idx].features[i].point.y);
+  //     p.p.z(data.observations[sensor_idx].features[i].point.z);
+
+  //     KDL::Frame p2(KDL::Frame::Identity());
+  //     offsets.getFrame("scene_camera_mount_joint", p2);
+
+  //     // Apply the FK projection
+  //     p = p2 * p;
+
+  //     points[i].point.x = p.p.x();
+  //     points[i].point.y = p.p.y();
+  //     points[i].point.z = p.p.z();
+  //   }
+  //   return points;
+  // }
 }
 
 KDL::Frame Chain3dModel::getChainFK(const OptimizationOffsets& offsets,
@@ -128,23 +197,35 @@ KDL::Frame Chain3dModel::getChainFK(const OptimizationOffsets& offsets,
     KDL::Frame correction = KDL::Frame::Identity();
     offsets.getFrame(name, correction);
 
+    std::cout << "Getting correction for frame : " << name << std::endl;
+    std::cout << "Correction Frame values : " << correction.p.x() << ", " << correction.p.y() << ", " << correction.p.z() << std::endl;
+
     KDL::Frame pose;
     if (chain_.getSegment(i).getJoint().getType() != KDL::Joint::None)
     {
       // Apply any joint offset calibration
       double p = positionFromMsg(name, state) + offsets.get(name);
       pose = chain_.getSegment(i).pose(p);
+      std::cout << "Apply any joint offset calibration" << std::endl;
+      std::cout << "Joint position : " << p << std::endl;
+      std::cout << pose.p.x() << ", " << pose.p.y() << ", " << pose.p.z() << std::endl;
     }
     else
     {
       pose = chain_.getSegment(i).pose(0.0);
+      std::cout << "Setting Pose 0" << std::endl;
+      std::cout << "Pose frame : " << pose.p.x() << ", " << pose.p.y() << ", " << pose.p.z() << std::endl;
     }
-
+    
     KDL::Frame totip = chain_.getSegment(i).getFrameToTip();
+    std::cout << "totip Frame : " << totip.p.x() << ", " << totip.p.y() << ", " << totip.p.z() << std::endl;
 
     // Apply any frame calibration on the joint <origin> frame
     p_out = p_out * KDL::Frame(pose.p + totip.M * correction.p);
+    std::cout << "p_out Frame (Step 1): " << p_out.p.x() << ", " << p_out.p.y() << ", " << p_out.p.z() << std::endl;
+
     p_out = p_out * KDL::Frame(totip.M * correction.M * totip.M.Inverse() * pose.M);
+    std::cout << "p_out Frame (Step 2): " << p_out.p.x() << ", " << p_out.p.y() << ", " << p_out.p.z() << std::endl;
 
   }
   return p_out;
@@ -229,10 +310,14 @@ std::vector<geometry_msgs::msg::PointStamped> Camera3dModel::project(
   points.resize(data.observations[sensor_idx].features.size());
 
   // Get position of camera frame
+  std::cout << "Calling getChainFK from Camera3DModel project" << std::endl;
   KDL::Frame fk = getChainFK(offsets, data.joint_states);
 
   // (marqrazz): this is useful to see how the joint is moving as the calibration runs
-  // std::cout << "FK data_: " << fk.p.x() << ", " << fk.p.y() << ", " << fk.p.z() << std::endl;
+  // KDL::Frame test_offset;
+  // auto value = getFrame("checkerboard", test_offset);
+  // std::cout << "Getting offset : " << test_offset.p.x() << << ", " << test_offset.p.y() << ", " << test_offset.p.z() << std::endl;
+  std::cout << "FK data_: " << fk.p.x() << ", " << fk.p.y() << ", " << fk.p.z() << std::endl;
 
   for (size_t i = 0; i < points.size(); ++i)
   {

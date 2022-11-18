@@ -40,7 +40,7 @@ public:
   bool init(const std::string& name, rclcpp::Node::SharedPtr node, const rclcpp::Logger& logger)
   {
     std::string topic_name =
-      node->declare_parameter<std::string>(name + ".camera_info_topic", "/head_camera/depth/camera_info");
+      node->declare_parameter<std::string>(name + ".camera_info_topic", "/scene_camera/depth/camera_info");
     camera_info_subscriber_ = node->create_subscription<sensor_msgs::msg::CameraInfo>(
       topic_name, 1, std::bind(&DepthCameraInfoManager::cameraInfoCallback, this, std::placeholders::_1));
 
@@ -83,7 +83,7 @@ public:
         return true;
       }
       rclcpp::sleep_for(std::chrono::milliseconds(100));
-      // rclcpp::spin_some(node);
+      rclcpp::spin_some(node);
     }
 
     RCLCPP_WARN(logger, "CameraInfo receive timed out.");

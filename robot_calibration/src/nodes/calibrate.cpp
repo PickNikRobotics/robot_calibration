@@ -206,23 +206,23 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  // Run calibration steps
-  for (auto step : calibration_steps)
-  {
-    params.LoadFromROS(node, step);
-    opt.optimize(params, data, logger, node, verbose);
-    if (verbose)
-    {
-      std::cout << "Parameter Offsets:" << std::endl;
-      std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
-    }
-  }
+  // // Run calibration steps
+  // for (auto step : calibration_steps)
+  // {
+  //   params.LoadFromROS(node, step);
+  //   opt.optimize(params, data, logger, node, verbose);
+  //   if (verbose)
+  //   {
+  //     std::cout << "Parameter Offsets:" << std::endl;
+  //     std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
+  //   }
+  // }
 
-  // Write outputs
-  robot_calibration::exportResults(opt, description_msg.data, data);
+  // // Write outputs
+  // robot_calibration::exportResults(opt, description_msg.data, data);
 
-  RCLCPP_INFO(logger, "Done calibrating");
-  rclcpp::shutdown();
+  // RCLCPP_INFO(logger, "Done calibrating");
+  // rclcpp::shutdown();
 
   return 0;
 }

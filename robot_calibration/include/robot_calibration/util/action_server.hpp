@@ -7,6 +7,8 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include "visualization_msgs/msg/marker_array.hpp"
+
 #include <std_msgs/msg/string.hpp>
 #include <robot_calibration_msgs/msg/calibration_data.hpp>
 #include <robot_calibration_msgs/msg/capture_config.hpp>
@@ -24,6 +26,7 @@ class CalibratePoseServer
   using GoalHandleCalibratePose = rclcpp_action::ServerGoalHandle<CalibratePose>;
 
   rclcpp::Node::SharedPtr node_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
   rclcpp_action::Server<CalibratePose>::SharedPtr action_server_;
 
   std::string robot_poses_path_;

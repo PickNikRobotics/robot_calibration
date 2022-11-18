@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(robot_calibration)
 
+add_compile_options(-g)
+
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
@@ -171,9 +173,9 @@ target_link_libraries(viz_mesh
   ${orocos_kdl_LIBRARIES}
 )
 
-if(BUILD_TESTING)
-  add_subdirectory(test)
-endif()
+# if(BUILD_TESTING)
+#   add_subdirectory(test)
+# endif()
 
 install(DIRECTORY include/ DESTINATION include)
 

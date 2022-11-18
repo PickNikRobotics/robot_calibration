@@ -163,6 +163,8 @@ bool OptimizationOffsets::getFrame(const std::string name, KDL::Frame& offset) c
   if (!has_offset)
     return false;
 
+//  std::cout << "Values for " << name << " " << get(std::string(name).append("_x")) << " " << get(std::string(name).append("_y")) << " " << get(std::string(name).append("_z")) << std::endl; 
+
   offset.p.x(get(std::string(name).append("_x")));
   offset.p.y(get(std::string(name).append("_y")));
   offset.p.z(get(std::string(name).append("_z")));

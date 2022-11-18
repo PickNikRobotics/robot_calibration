@@ -64,7 +64,7 @@ Optimizer::~Optimizer()
 int Optimizer::optimize(OptimizationParams& params,
                         std::vector<robot_calibration_msgs::msg::CalibrationData> data,
                         rclcpp::Logger& logger,
-                        rclcpp::Node::SharedPtr node,
+                        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub,
                         bool progress_to_stdout)
 {
   // Load KDL from URDF
@@ -121,9 +121,11 @@ int Optimizer::optimize(OptimizationParams& params,
                        params.free_frames[i].roll,
                        params.free_frames[i].pitch,
                        params.free_frames[i].yaw);
+    std::cout << "Added frame " << params.free_frames[i].name << " : " << params.free_frames[i].x << " " << params.free_frames[i].y << " " << params.free_frames[i].z << " " << params.free_frames[i].roll << " " << params.free_frames[i].pitch << " " << params.free_frames[i].yaw << std::endl;
   }
   for (size_t i = 0; i < params.free_frames_initial_values.size(); ++i)
   {
+    std::cout << "Setting initial values for frame " << params.free_frames_initial_values[i].name << " : " << params.free_frames_initial_values[i].x << " " << params.free_frames_initial_values[i].y << " " << params.free_frames_initial_values[i].z << " " << params.free_frames_initial_values[i].roll << " " << params.free_frames_initial_values[i].pitch << " " << params.free_frames_initial_values[i].yaw << std::endl;
     if (!offsets_->setFrame(params.free_frames_initial_values[i].name,
                             params.free_frames_initial_values[i].x,
                             params.free_frames_initial_values[i].y,
@@ -175,7 +177,7 @@ int Optimizer::optimize(OptimizationParams& params,
                                                               models_[b_name],
                                                               offsets_.get(),
                                                               data[i],
-                                                              node);
+                                                              pub);
 
         // Output initial error
         if (progress_to_stdout)
