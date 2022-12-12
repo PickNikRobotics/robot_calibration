@@ -1,7 +1,6 @@
 #include <robot_calibration/util/action_server.hpp>
 #include <robot_calibration/util/poses_from_yaml.hpp>
 
-#include <robot_calibration/optimization/ceres_optimizer.hpp>
 #include <robot_calibration/optimization/export.hpp>
 
 #include "tf2/LinearMath/Quaternion.h"
@@ -35,6 +34,11 @@ CalibratePoseServer::CalibratePoseServer(const rclcpp::Node::SharedPtr& node, st
   if (calibration_steps.empty())
   {
     RCLCPP_FATAL(node->get_logger(), "Parameter calibration_steps is not defined");
+  }
+
+  for (auto step : calibration_steps)
+  {
+    params.LoadFromROS(node_, step);
   }
 }
 
@@ -105,9 +109,6 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       RCLCPP_INFO(logger, "Captured pose %u of %lu", pose_idx + 1, robot_poses.size());
 
       // Add to samples
-      std::cout << "Number of observation : " << msg.observations.size() << std::endl;
-      std::cout << "Name of observation sensor 1 : " << msg.observations[0].sensor_name << std::endl;
-      std::cout << "Name of observation sensor 2 : " << msg.observations[1].sensor_name << std::endl;
       data.push_back(msg);
     }
 
@@ -115,14 +116,11 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
   }
 
   // Create instance of optimizer
-  robot_calibration::OptimizationParams params;
   robot_calibration::Optimizer opt(description_msg.data);
 
   // Run calibration steps
   for (auto step : calibration_steps)
   {
-    params.LoadFromROS(node_, step);
-
     // If we receive initial guess from action goal, override 
     if (goal->estimated_poses.size() > 0) {
       for (unsigned i=0; i < params.free_frames.size(); i++) {
@@ -164,7 +162,7 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
 
       for (unsigned i=0; i < params.free_frames.size(); i++) {
         if (params.free_frames.at(i).name == "scene_camera_mount_joint") {
-          std::cout << "Looking up transform for scene_camera_mound_joint" << std::endl;
+          std::cout << "Looking up transform for scene_camera_mount_joint" << std::endl;
           std::cout << "Initial Value - x: " <<  params.free_frames_initial_values.at(i).x << " y: " <<  params.free_frames_initial_values.at(i).y << " z: " <<  params.free_frames_initial_values.at(i).z << " roll: " <<  params.free_frames_initial_values.at(i).roll << " pitch: " <<  params.free_frames_initial_values.at(i).pitch << " yaw: " <<  params.free_frames_initial_values.at(i).yaw << std::endl;
 
           params.free_frames_initial_values.at(i).x = initial_estimate.transform.translation.x;

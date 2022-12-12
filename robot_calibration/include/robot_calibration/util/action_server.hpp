@@ -13,6 +13,7 @@
 #include <robot_calibration_msgs/msg/calibration_data.hpp>
 #include <robot_calibration_msgs/msg/capture_config.hpp>
 #include <robot_calibration_msgs/action/calibrate_pose.hpp>
+#include <robot_calibration/optimization/ceres_optimizer.hpp>
 
 #include <robot_calibration/util/capture_manager.hpp>
 
@@ -48,6 +49,8 @@ class CalibratePoseServer
 
   rclcpp_action::CancelResponse handle_cancel(
     const std::shared_ptr<GoalHandleCalibratePose> goal_handle);
+
+  robot_calibration::OptimizationParams params;
 
   void handle_accepted(const std::shared_ptr<GoalHandleCalibratePose> goal_handle);
   void execute(const std::shared_ptr<GoalHandleCalibratePose> goal_handle);

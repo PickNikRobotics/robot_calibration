@@ -121,11 +121,9 @@ int Optimizer::optimize(OptimizationParams& params,
                        params.free_frames[i].roll,
                        params.free_frames[i].pitch,
                        params.free_frames[i].yaw);
-    std::cout << "Added frame " << params.free_frames[i].name << " : " << params.free_frames[i].x << " " << params.free_frames[i].y << " " << params.free_frames[i].z << " " << params.free_frames[i].roll << " " << params.free_frames[i].pitch << " " << params.free_frames[i].yaw << std::endl;
   }
   for (size_t i = 0; i < params.free_frames_initial_values.size(); ++i)
   {
-    std::cout << "Setting initial values for frame " << params.free_frames_initial_values[i].name << " : " << params.free_frames_initial_values[i].x << " " << params.free_frames_initial_values[i].y << " " << params.free_frames_initial_values[i].z << " " << params.free_frames_initial_values[i].roll << " " << params.free_frames_initial_values[i].pitch << " " << params.free_frames_initial_values[i].yaw << std::endl;
     if (!offsets_->setFrame(params.free_frames_initial_values[i].name,
                             params.free_frames_initial_values[i].x,
                             params.free_frames_initial_values[i].y,

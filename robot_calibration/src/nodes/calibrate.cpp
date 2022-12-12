@@ -70,6 +70,8 @@ int main(int argc, char** argv)
   // Should we be stupidly verbose?
   bool verbose = node->declare_parameter<bool>("verbose", false);
 
+  auto publisher = node->create_publisher<visualization_msgs::msg::MarkerArray>("/cal", rclcpp::SensorDataQoS().reliable());
+
   // The calibration data
   std_msgs::msg::String description_msg;
   std::vector<robot_calibration_msgs::msg::CalibrationData> data;
@@ -207,22 +209,22 @@ int main(int argc, char** argv)
   }
 
   // // Run calibration steps
-  // for (auto step : calibration_steps)
-  // {
-  //   params.LoadFromROS(node, step);
-  //   opt.optimize(params, data, logger, node, verbose);
-  //   if (verbose)
-  //   {
-  //     std::cout << "Parameter Offsets:" << std::endl;
-  //     std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
-  //   }
-  // }
+  for (auto step : calibration_steps)
+  {
+    params.LoadFromROS(node, step);
+    opt.optimize(params, data, logger, publisher, verbose);
+    if (verbose)
+    {
+      std::cout << "Parameter Offsets:" << std::endl;
+      std::cout << opt.getOffsets()->getOffsetYAML() << std::endl;
+    }
+  }
 
-  // // Write outputs
-  // robot_calibration::exportResults(opt, description_msg.data, data);
+  // Write outputs
+  robot_calibration::exportResults(opt, description_msg.data, data);
 
-  // RCLCPP_INFO(logger, "Done calibrating");
-  // rclcpp::shutdown();
+  RCLCPP_INFO(logger, "Done calibrating");
+  rclcpp::shutdown();
 
   return 0;
 }

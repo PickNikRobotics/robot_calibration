@@ -42,7 +42,6 @@ bool CheckerboardFinder::init(const std::string& name,
 {
   if (!FeatureFinder::init(name, buffer, node))
   {
-    // std::cout << "Feature Finder init returned false" << std::endl;
     return false;
   }
 
@@ -51,7 +50,6 @@ bool CheckerboardFinder::init(const std::string& name,
   // Setup subscriber
   std::string topic_name;
   topic_name = node->declare_parameter<std::string>(name + ".topic", name + "/points");
-  // std::cout << " Topic name : " << topic_name << std::endl;
   subscriber_ = node->create_subscription<sensor_msgs::msg::PointCloud2>(
     topic_name,
     rclcpp::QoS(1).best_effort().keep_last(1),
@@ -74,6 +72,8 @@ bool CheckerboardFinder::init(const std::string& name,
   camera_sensor_name_ = node->declare_parameter<std::string>(name + ".camera_sensor_name", "camera");
   chain_sensor_name_ = node->declare_parameter<std::string>(name + ".chain_sensor_name", "arm");
 
+  camera_link_ = node->declare_parameter<std::string>(name + ".camera_link", "scene_camera_mount_link");
+
   // Publish where checkerboard points were seen
   publisher_ = node->create_publisher<sensor_msgs::msg::PointCloud2>(getName() + "_points", 10);
 
@@ -83,7 +83,6 @@ bool CheckerboardFinder::init(const std::string& name,
   if (!depth_camera_manager_.init(name, node, LOGGER))
   {
     // Error will have been printed by manager
-    // std::cout << "Depth camera manager init failed and returned false" << std::endl;
     return false;
   }
 
@@ -213,16 +212,12 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
   {
     RCLCPP_INFO(LOGGER, "Found the checkboard");
 
-    std::cout << "Size of points vector : " << points.size() << std::endl;
-    std::cout << "Point 1 : " << points[0].x << " " << points[0].y << std::endl;
-    std::cout << "Point 2 : " << points[1].x << " " << points[1].y << std::endl;
-
     // Create PointCloud2 to publish
     sensor_msgs::msg::PointCloud2 cloud;
     cloud.width = 0;
     cloud.height = 0;
     cloud.header.stamp = clock_->now();
-    cloud.header.frame_id = "scene_camera_mount_link"; // cloud_.header.frame_id;
+    cloud.header.frame_id = camera_link_; // cloud_.header.frame_id;
     sensor_msgs::PointCloud2Modifier cloud_mod(cloud);
     cloud_mod.setPointCloud2FieldsByString(1, "xyz");
     cloud_mod.resize(points_x_ * points_y_);
@@ -238,20 +233,19 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     msg->observations[idx_cam].features.resize(points_x_ * points_y_);
     msg->observations[idx_chain].features.resize(points_x_ * points_y_);
 
+    RCLCPP_INFO(LOGGER, "Looking for transform from %s to %s.", camera_link_.c_str(), cloud_.header.frame_id.c_str());
     // Check that transform is possible. Fail without transforming if not possible.
-    std::cout << "Finding transform between scene_camera_mount_link and " << cloud_.header.frame_id << std::endl;
-    if (!tf2_buffer_->canTransform("scene_camera_mount_link", cloud_.header.frame_id, cloud_.header.stamp))
+    if (!tf2_buffer_->canTransform(camera_link_, cloud_.header.frame_id, cloud_.header.stamp))
     {
       RCLCPP_ERROR(LOGGER, "Failed to lookup Camera Sensor frame: %s to imitate", cloud_.header.frame_id.c_str());
     }
     // Transform is confirmed possible, get the transform and transform the point cloud.
     auto calibration_to_sensor_tf =
-        tf2_buffer_->lookupTransform("scene_camera_mount_link", cloud_.header.frame_id, cloud_.header.stamp);    
+        tf2_buffer_->lookupTransform(camera_link_, cloud_.header.frame_id, cloud_.header.stamp);    
 
     // Fill in the headers
-    cloud_.header.frame_id = "scene_camera_mount_link"; // we transform the measured data on the fly to the calibration_frame
+    cloud_.header.frame_id = camera_link_; // we transform the measured data on the fly to the calibration_frame
     rgbd.header = cloud_.header;
-    std::cout << "World header frame ID : " << frame_id_ << std::endl;
     world.header.frame_id = frame_id_;
 
     // Fill in message

@@ -75,7 +75,6 @@ bool OptimizationParams::LoadFromROS(rclcpp::Node::SharedPtr node,
     params.pitch = node->declare_parameter<double>(prefix + ".pitch", 0.0);
     params.yaw = node->declare_parameter<double>(prefix + ".yaw", 0.0);
     free_frames_initial_values.push_back(params);
-    std::cout << "Initial values from YAML file for frame " << name << " : " << params.x  << " " << params.y << " " << params.z << " " << params.roll << " " << params.pitch << " " << params.yaw << std::endl;
   }
 
   models.clear();
@@ -98,13 +97,11 @@ bool OptimizationParams::LoadFromROS(rclcpp::Node::SharedPtr node,
   for (auto name : error_block_names)
   {
     std::string prefix = parameter_ns + "." + name;
-    std::cout << "Prefix to get error blocks params : " << prefix << std::endl;
     std::string type = node->declare_parameter<std::string>(prefix + ".type", std::string());
     RCLCPP_INFO(logger, "Adding %s: %s", type.c_str(), name.c_str());
 
     if (type == "chain3d_to_chain3d")
     {
-      std::cout << "Getting chain3d_to_chain3d parameters" << std::endl;
       std::shared_ptr<Chain3dToChain3dParams> params = std::make_shared<Chain3dToChain3dParams>();
       params->name = name;
       params->type = type;
