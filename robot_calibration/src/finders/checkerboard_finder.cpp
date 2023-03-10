@@ -50,10 +50,13 @@ bool CheckerboardFinder::init(const std::string& name,
   // Setup subscriber
   std::string topic_name;
   topic_name = node->declare_parameter<std::string>(name + ".topic", name + "/points");
+  auto subscription_options = rclcpp::SubscriptionOptions();
+  subscription_options.callback_group = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   subscriber_ = node->create_subscription<sensor_msgs::msg::PointCloud2>(
     topic_name,
-    rclcpp::QoS(1).best_effort().keep_last(1),
-    std::bind(&CheckerboardFinder::cameraCallback, this, std::placeholders::_1));
+    rclcpp::SensorDataQoS().reliable(),
+    std::bind(&CheckerboardFinder::cameraCallback, this, std::placeholders::_1),
+    subscription_options);
 
   RCLCPP_ERROR(LOGGER, "Name: %s, Subscribing to: %s", name.c_str(), topic_name.c_str());
 
