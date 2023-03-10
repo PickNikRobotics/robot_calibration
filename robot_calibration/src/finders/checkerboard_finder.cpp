@@ -54,7 +54,7 @@ bool CheckerboardFinder::init(const std::string& name,
   subscription_options.callback_group = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   subscriber_ = node->create_subscription<sensor_msgs::msg::PointCloud2>(
     topic_name,
-    rclcpp::SensorDataQoS(),
+    rclcpp::SensorDataQoS().reliable(),
     std::bind(&CheckerboardFinder::cameraCallback, this, std::placeholders::_1),
     subscription_options);
 
