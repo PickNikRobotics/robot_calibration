@@ -93,7 +93,7 @@ public:
       // TODO(marqrazz) Error if you fail to load the plugin!
       else
       {
-        RCLCPP_INFO(logger, "  No Features");
+        RCLCPP_INFO(logger, "Failed to load Features Plugin");
       }
     }
 

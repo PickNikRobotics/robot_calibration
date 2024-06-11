@@ -58,8 +58,7 @@ bool CheckerboardFinder::init(const std::string& name,
     std::bind(&CheckerboardFinder::cameraCallback, this, std::placeholders::_1),
     subscription_options);
 
-  RCLCPP_ERROR(LOGGER, "Name: %s, Subscribing to: %s", name.c_str(), topic_name.c_str());
-
+  RCLCPP_INFO(LOGGER, "Name: %s, Subscribing to: %s", name.c_str(), topic_name.c_str());
   // Size of checkerboard
   points_x_ = node->declare_parameter<int>(name + ".points_x", 5);
   points_y_ = node->declare_parameter<int>(name + ".points_y", 4);
@@ -116,7 +115,7 @@ bool CheckerboardFinder::waitForCloud()
   rclcpp::sleep_for(std::chrono::milliseconds(100));
 
   waiting_ = true;
-  int count = 250;
+  int count = 1250;
   while (--count)
   {
     if (!waiting_)
@@ -169,7 +168,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
 
   // Get an image message from point cloud
   sensor_msgs::msg::Image::SharedPtr image_msg(new sensor_msgs::msg::Image);
-  sensor_msgs::PointCloud2ConstIterator<uint8_t> rgb(cloud_, "rgb");
+  sensor_msgs::PointCloud2ConstIterator<uint8_t> rgb(cloud_, "rgba");
   image_msg->encoding = "bgr8";
   image_msg->height = cloud_.height;
   image_msg->width = cloud_.width;
@@ -199,6 +198,8 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     return false;
   }
 
+  // Invert the colors of the image
+  cv::bitwise_not(bridge->image, bridge->image);
   // Find checkerboard
   std::vector<cv::Point2f> points;
   points.resize(points_x_ * points_y_);
@@ -208,7 +209,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
                                         cv::CALIB_CB_NORMALIZE_IMAGE +
                                         cv::CALIB_CB_FILTER_QUADS);
 
-  RCLCPP_WARN(LOGGER, "found: %i, checker size: %i, %i, %i", found, points_x_, points_y_, 
+  RCLCPP_INFO(LOGGER, "found: %i, checker size: %i, %i, %i", found, points_x_, points_y_, 
     cv::checkChessboard(bridge->image, checkerboard_size));
 
   if (found)
@@ -303,10 +304,10 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     return true;
   }
 
-  cv::Size observed_size;
+  cv::Size observed_size(points_x_, points_y_);
   if(cv::checkChessboard(bridge->image, observed_size))
     RCLCPP_ERROR(LOGGER, "The checkerboard found does not match the values given in capture.yaml.\n \
-     Found checkerboard with: d points_x, d points_y.");
+     Found checkerboard with: %lu points_x, %lu points_y.", observed_size.width, observed_size.height);
   else
     RCLCPP_ERROR(LOGGER, "Could not find the checkerboard!");
   return false;
