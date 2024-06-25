@@ -378,7 +378,7 @@ int Optimizer::optimize(OptimizationParams& params,
   // Setup the actual optimization
   ceres::Solver::Options options;
   options.use_nonmonotonic_steps = true;
-  options.function_tolerance = 1e-10;
+  options.function_tolerance = 1e-6;
   options.linear_solver_type = ceres::DENSE_QR;
   options.max_num_iterations = params.max_num_iterations;
   options.minimizer_progress_to_stdout = progress_to_stdout;

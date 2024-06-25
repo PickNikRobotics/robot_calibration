@@ -258,7 +258,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     {
       world.point.x = (i % points_x_) * square_size_;
       world.point.y = (i / points_x_) * square_size_ * -1.0; // TODO(Marq): should both of these use `points_x_`? -> no otherwise point.y will rollover before point.x finishes filling out row
-      // RCLCPP_WARN(LOGGER, "world pt: %f, %f", world.point.x, world.point.y);
+      RCLCPP_WARN(LOGGER, "world pt: %f, %f", world.point.x, world.point.y);
 
       // Get 3d point
       int index = (int)(points[i].y) * cloud_.width + (int)(points[i].x);
